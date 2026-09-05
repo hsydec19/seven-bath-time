@@ -15,6 +15,12 @@ test("creates a GitHub Pages export under the repository base path", async () =>
   assert.match(html, /\/seven-bath-time\/assets\/bath\/rubber-duck\.svg/);
   assert.match(html, /\/seven-bath-time\/assets\/brand\/game-icon-64\.png/);
   assert.match(html, /\/seven-bath-time\/assets\/brand\/apple-touch-icon\.png/);
+  assert.match(html, /\/seven-bath-time\/assets\/audio\/background-music\.mp3/);
+  assert.match(html, /\/seven-bath-time\/assets\/audio\/scrubbing\.mp3/);
+  assert.match(html, /\/seven-bath-time\/assets\/audio\/level-complete\.mp3/);
+  assert.match(html, /\/seven-bath-time\/assets\/audio\/final-victory\.mp3/);
+  assert.match(html, /\/seven-bath-time\/assets\/audio\/game-over\.mp3/);
+  assert.match(html, /\/seven-bath-time\/assets\/audio\/button-pop\.mp3/);
   assert.doesNotMatch(html, /(?:src|href)="\/_next\//);
 
   const publishedResources = [
@@ -33,5 +39,11 @@ test("creates a GitHub Pages export under the repository base path", async () =>
   await access(new URL("assets/brand/game-icon-64.png", outputUrl));
   await access(new URL("assets/brand/game-icon-192.png", outputUrl));
   await access(new URL("assets/brand/apple-touch-icon.png", outputUrl));
+  await access(new URL("assets/audio/background-music.mp3", outputUrl));
+  await access(new URL("assets/audio/scrubbing.mp3", outputUrl));
+  await access(new URL("assets/audio/level-complete.mp3", outputUrl));
+  await access(new URL("assets/audio/final-victory.mp3", outputUrl));
+  await access(new URL("assets/audio/game-over.mp3", outputUrl));
+  await access(new URL("assets/audio/button-pop.mp3", outputUrl));
   await assert.rejects(access(new URL("seven-bath-time/_next", outputUrl)));
 });

@@ -23,10 +23,17 @@ test("renders the Seven bath game landing state", async () => {
   assert.match(html, /href="\/assets\/brand\/apple-touch-icon\.png"/i);
   assert.match(html, /<h1>老七，该洗澡了<\/h1>/i);
   assert.match(html, /aria-haspopup="dialog"[^>]*>关于<\/button>/i);
+  assert.match(html, /aria-haspopup="dialog"[^>]*>设置<\/button>/i);
   assert.match(html, /准备好洗澡了吗？/);
   assert.match(html, /开始第一关/);
   assert.match(html, /<strong>第一关<\/strong>/);
   assert.match(html, /清洁度/);
+  assert.match(html, /\/assets\/audio\/background-music\.mp3/);
+  assert.match(html, /\/assets\/audio\/scrubbing\.mp3/);
+  assert.match(html, /\/assets\/audio\/level-complete\.mp3/);
+  assert.match(html, /\/assets\/audio\/final-victory\.mp3/);
+  assert.match(html, /\/assets\/audio\/game-over\.mp3/);
+  assert.match(html, /\/assets\/audio\/button-pop\.mp3/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
@@ -37,6 +44,8 @@ test("includes the complete risk-and-reward game loop", async () => {
   assert.match(source, /finishGame\("gameover"/);
   assert.match(source, /levelRef\.current === 1 \? "levelcomplete" : "won"/);
   assert.match(source, /finishGame\(result, 100\)/);
+  assert.match(source, /levelRef\.current === 1\s*\? clamp\(distance \* 0\.09, 0\.3, 2\.25\)/);
+  assert.doesNotMatch(source, /FIRST_LEVEL_MIN_SCRUB_MS|firstLevelMinimumMet/);
   assert.match(source, /seven-bath-best/);
   assert.match(source, /onPointerMove/);
   assert.match(source, /onKeyDown/);
@@ -54,8 +63,38 @@ test("includes the complete risk-and-reward game loop", async () => {
   assert.match(source, /className="about-game-icon"/);
   assert.match(source, /assets\/brand\/game-icon-192\.png/);
   assert.doesNotMatch(source, /className="about-icon"[^>]*>🛁/);
-  assert.match(source, /部分素材源自王女士和她的狗，仅供娱乐、交流与学习使用/);
+  assert.match(source, /部分素材源自王姐和她的狗，仅供娱乐、交流与学习使用/);
   assert.match(source, /role="dialog" aria-modal="true"/);
+  assert.match(source, /seven-bath-music-enabled/);
+  assert.match(source, /seven-bath-sfx-enabled/);
+  assert.match(source, /backgroundMusicRef/);
+  assert.match(source, /audio\.volume = 0\.28/);
+  assert.match(source, /assets\/audio\/background-music\.mp3/);
+  assert.match(source, /scrubbingSoundRef/);
+  assert.match(source, /audio\.volume = 0\.42/);
+  assert.match(source, /assets\/audio\/scrubbing\.mp3/);
+  assert.match(source, /stopScrubbingSound/);
+  assert.match(source, /if \(!touchingCat\) return;/);
+  assert.match(source, /levelCompleteSoundRef/);
+  assert.match(source, /audio\.volume = 0\.68/);
+  assert.match(source, /nextStatus === "levelcomplete"\) playLevelCompleteSound/);
+  assert.match(source, /assets\/audio\/level-complete\.mp3/);
+  assert.match(source, /finalVictorySoundRef/);
+  assert.match(source, /audio\.volume = 0\.72/);
+  assert.match(source, /nextStatus === "won"\) playFinalVictorySound/);
+  assert.match(source, /assets\/audio\/final-victory\.mp3/);
+  assert.match(source, /gameOverSoundRef/);
+  assert.match(source, /audio\.volume = 0\.7/);
+  assert.match(source, /nextStatus === "gameover"\) playGameOverSound/);
+  assert.match(source, /assets\/audio\/game-over\.mp3/);
+  assert.match(source, /buttonSoundRef/);
+  assert.match(source, /audio\.volume = 0\.3/);
+  assert.match(source, /onClickCapture=\{handleButtonClick\}/);
+  assert.match(source, /const openAbout = \(\) => \{[^}]*playFinalVictorySound\(\);[^}]*setShowAbout\(true\);/s);
+  assert.match(source, /assets\/audio\/button-pop\.mp3/);
+  assert.match(source, /loop\s+preload="metadata"/);
+  assert.match(source, /role="switch"[^>]*aria-checked=\{musicEnabled\}/);
+  assert.match(source, /role="switch"[^>]*aria-checked=\{soundEffectsEnabled\}/);
   assert.doesNotMatch(source, /label: "教学"|label: "警觉"|label: "危险"|label: "极限"/);
   assert.match(source, /assets\/bath\/shower-fixture\.svg/);
   assert.match(source, /assets\/bath\/rubber-duck\.svg/);
@@ -63,6 +102,11 @@ test("includes the complete risk-and-reward game loop", async () => {
   assert.doesNotMatch(source, /className="clean-meter"/);
   assert.doesNotMatch(source, /className="shower-pipe"/);
   assert.doesNotMatch(source, /className="duck"/);
+});
+
+test("uses sliding sound preference switches", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /\.sound-toggle\.is-on span\s*\{[^}]*translateX\(22px\)/s);
 });
 
 test("keeps the intended light palette when the system uses dark mode", async () => {
@@ -123,4 +167,40 @@ test("ships compact WebP cat assets instead of public PNG sources", async () => 
   assert.ok(body.size < 200 * 1024, `cat body is unexpectedly large: ${body.size} bytes`);
   assert.ok(head.size < 150 * 1024, `cat head is unexpectedly large: ${head.size} bytes`);
   assert.deepEqual(files.filter((file) => file.endsWith(".png")), []);
+});
+
+test("ships a reasonably sized background music file", async () => {
+  const music = await stat(new URL("../public/assets/audio/background-music.mp3", import.meta.url));
+  assert.ok(music.size > 0, "background music is empty");
+  assert.ok(music.size < 2 * 1024 * 1024, `background music is unexpectedly large: ${music.size} bytes`);
+});
+
+test("ships a reasonably sized scrubbing sound effect", async () => {
+  const effect = await stat(new URL("../public/assets/audio/scrubbing.mp3", import.meta.url));
+  assert.ok(effect.size > 0, "scrubbing sound effect is empty");
+  assert.ok(effect.size < 1024 * 1024, `scrubbing sound effect is unexpectedly large: ${effect.size} bytes`);
+});
+
+test("ships a reasonably sized first-level completion sound", async () => {
+  const effect = await stat(new URL("../public/assets/audio/level-complete.mp3", import.meta.url));
+  assert.ok(effect.size > 0, "first-level completion sound is empty");
+  assert.ok(effect.size < 1024 * 1024, `first-level completion sound is unexpectedly large: ${effect.size} bytes`);
+});
+
+test("ships a reasonably sized final victory sound", async () => {
+  const effect = await stat(new URL("../public/assets/audio/final-victory.mp3", import.meta.url));
+  assert.ok(effect.size > 0, "final victory sound is empty");
+  assert.ok(effect.size < 1024 * 1024, `final victory sound is unexpectedly large: ${effect.size} bytes`);
+});
+
+test("ships a reasonably sized game-over sound", async () => {
+  const effect = await stat(new URL("../public/assets/audio/game-over.mp3", import.meta.url));
+  assert.ok(effect.size > 0, "game-over sound is empty");
+  assert.ok(effect.size < 1024 * 1024, `game-over sound is unexpectedly large: ${effect.size} bytes`);
+});
+
+test("ships a compact CC0 button sound", async () => {
+  const effect = await stat(new URL("../public/assets/audio/button-pop.mp3", import.meta.url));
+  assert.ok(effect.size > 0, "button sound is empty");
+  assert.ok(effect.size < 64 * 1024, `button sound is unexpectedly large: ${effect.size} bytes`);
 });

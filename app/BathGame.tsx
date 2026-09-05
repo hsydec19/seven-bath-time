@@ -15,6 +15,14 @@ const TURN_REACTION_GRACE_MS = 150;
 
 export default function BathGame() {
   const sceneRef = useRef<HTMLDivElement>(null);
+  const backgroundMusicRef = useRef<HTMLAudioElement>(null);
+  const scrubbingSoundRef = useRef<HTMLAudioElement>(null);
+  const levelCompleteSoundRef = useRef<HTMLAudioElement>(null);
+  const finalVictorySoundRef = useRef<HTMLAudioElement>(null);
+  const gameOverSoundRef = useRef<HTMLAudioElement>(null);
+  const buttonSoundRef = useRef<HTMLAudioElement>(null);
+  const hasStartedRef = useRef(false);
+  const soundEffectsEnabledRef = useRef(true);
   const dragRef = useRef(false);
   const lastPointRef = useRef<Point>({ x: 28, y: 56 });
   const statusRef = useRef<GameStatus>("idle");
@@ -30,6 +38,9 @@ export default function BathGame() {
   const [cleanliness, setCleanliness] = useState(0);
   const [best, setBest] = useState(0);
   const [showAbout, setShowAbout] = useState(false);
+  const [showSoundSettings, setShowSoundSettings] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const [soundEffectsEnabled, setSoundEffectsEnabled] = useState(true);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [sponge, setSponge] = useState({ x: 28, y: 56, angle: -12, active: false });
 
@@ -49,12 +60,20 @@ export default function BathGame() {
     const frame = window.requestAnimationFrame(() => {
       const stored = Number(window.localStorage.getItem("seven-bath-best") ?? 0);
       if (Number.isFinite(stored)) setBest(clamp(stored, 0, 100));
+      const storedMusic = window.localStorage.getItem("seven-bath-music-enabled");
+      const storedSoundEffects = window.localStorage.getItem("seven-bath-sfx-enabled");
+      if (storedMusic !== null) setMusicEnabled(storedMusic === "true");
+      if (storedSoundEffects !== null) {
+        const enabled = storedSoundEffects === "true";
+        soundEffectsEnabledRef.current = enabled;
+        setSoundEffectsEnabled(enabled);
+      }
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
-    if (status !== "playing" || showAbout) return;
+    if (status !== "playing" || showAbout || showSoundSettings) return;
 
     let turnTimer: ReturnType<typeof setTimeout>;
     let watchingTimer: ReturnType<typeof setTimeout>;
@@ -90,24 +109,165 @@ export default function BathGame() {
       clearTimeout(turnTimer);
       clearTimeout(watchingTimer);
     };
-  }, [showAbout, status]);
+  }, [showAbout, showSoundSettings, status]);
 
   useEffect(() => {
-    if (!showAbout) return;
+    if (!showAbout && !showSoundSettings) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowAbout(false);
+      if (event.key !== "Escape") return;
+      setShowAbout(false);
+      setShowSoundSettings(false);
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [showAbout]);
+  }, [showAbout, showSoundSettings]);
+
+  const playBackgroundMusic = useCallback(() => {
+    const audio = backgroundMusicRef.current;
+    if (!audio) return;
+    audio.volume = 0.28;
+    void audio.play().catch(() => {
+      // Browsers may reject playback until the next explicit user interaction.
+    });
+  }, []);
+
+  const toggleMusic = () => {
+    const nextEnabled = !musicEnabled;
+    setMusicEnabled(nextEnabled);
+    window.localStorage.setItem("seven-bath-music-enabled", String(nextEnabled));
+    if (nextEnabled && hasStartedRef.current) playBackgroundMusic();
+    if (!nextEnabled) backgroundMusicRef.current?.pause();
+  };
+
+  const stopScrubbingSound = useCallback(() => {
+    const audio = scrubbingSoundRef.current;
+    if (!audio) return;
+    audio.pause();
+    if (audio.readyState > 0) audio.currentTime = 0;
+  }, []);
+
+  const playScrubbingSound = useCallback(() => {
+    if (!soundEffectsEnabledRef.current) return;
+    const audio = scrubbingSoundRef.current;
+    if (!audio || !audio.paused) return;
+    audio.volume = 0.42;
+    void audio.play().catch(() => {
+      // Playback can resume on the next pointer or keyboard interaction.
+    });
+  }, []);
+
+  const stopLevelCompleteSound = useCallback(() => {
+    const audio = levelCompleteSoundRef.current;
+    if (!audio) return;
+    audio.pause();
+    if (audio.readyState > 0) audio.currentTime = 0;
+  }, []);
+
+  const playLevelCompleteSound = useCallback(() => {
+    if (!soundEffectsEnabledRef.current) return;
+    const audio = levelCompleteSoundRef.current;
+    if (!audio) return;
+    if (audio.readyState > 0) audio.currentTime = 0;
+    audio.volume = 0.68;
+    void audio.play().catch(() => {
+      // Playback can resume after another explicit user interaction.
+    });
+  }, []);
+
+  const stopFinalVictorySound = useCallback(() => {
+    const audio = finalVictorySoundRef.current;
+    if (!audio) return;
+    audio.pause();
+    if (audio.readyState > 0) audio.currentTime = 0;
+  }, []);
+
+  const playFinalVictorySound = useCallback(() => {
+    if (!soundEffectsEnabledRef.current) return;
+    const audio = finalVictorySoundRef.current;
+    if (!audio) return;
+    if (audio.readyState > 0) audio.currentTime = 0;
+    audio.volume = 0.72;
+    void audio.play().catch(() => {
+      // Playback can resume after another explicit user interaction.
+    });
+  }, []);
+
+  const stopGameOverSound = useCallback(() => {
+    const audio = gameOverSoundRef.current;
+    if (!audio) return;
+    audio.pause();
+    if (audio.readyState > 0) audio.currentTime = 0;
+  }, []);
+
+  const playGameOverSound = useCallback(() => {
+    if (!soundEffectsEnabledRef.current) return;
+    const audio = gameOverSoundRef.current;
+    if (!audio) return;
+    if (audio.readyState > 0) audio.currentTime = 0;
+    audio.volume = 0.7;
+    void audio.play().catch(() => {
+      // Playback can resume after another explicit user interaction.
+    });
+  }, []);
+
+  const stopButtonSound = useCallback(() => {
+    const audio = buttonSoundRef.current;
+    if (!audio) return;
+    audio.pause();
+    if (audio.readyState > 0) audio.currentTime = 0;
+  }, []);
+
+  const playButtonSound = useCallback(() => {
+    if (!soundEffectsEnabledRef.current) return;
+    const audio = buttonSoundRef.current;
+    if (!audio) return;
+    if (audio.readyState > 0) audio.currentTime = 0;
+    audio.volume = 0.3;
+    void audio.play().catch(() => {
+      // Browsers may reject playback until the next explicit user interaction.
+    });
+  }, []);
+
+  const handleButtonClick = (event: React.MouseEvent<HTMLElement>) => {
+    if (event.target instanceof Element && event.target.closest("button")) playButtonSound();
+  };
+
+  const openAbout = () => {
+    stopLevelCompleteSound();
+    stopGameOverSound();
+    stopFinalVictorySound();
+    playFinalVictorySound();
+    setShowSoundSettings(false);
+    setShowAbout(true);
+  };
+
+  const toggleSoundEffects = () => {
+    const nextEnabled = !soundEffectsEnabled;
+    soundEffectsEnabledRef.current = nextEnabled;
+    setSoundEffectsEnabled(nextEnabled);
+    window.localStorage.setItem("seven-bath-sfx-enabled", String(nextEnabled));
+    if (nextEnabled) {
+      playButtonSound();
+    } else {
+      stopScrubbingSound();
+      stopLevelCompleteSound();
+      stopFinalVictorySound();
+      stopGameOverSound();
+      stopButtonSound();
+    }
+  };
 
   const finishGame = useCallback((nextStatus: "levelcomplete" | "gameover" | "won", score: number) => {
     dragRef.current = false;
+    stopScrubbingSound();
     moodRef.current = "safe";
     turnGraceUntilRef.current = 0;
     setSponge((current) => ({ ...current, active: false }));
     setStatus(nextStatus);
     setMood("safe");
+    if (nextStatus === "levelcomplete") playLevelCompleteSound();
+    if (nextStatus === "won") playFinalVictorySound();
+    if (nextStatus === "gameover") playGameOverSound();
     if (nextStatus === "levelcomplete" || levelRef.current === 1) return;
     const rounded = Math.round(score);
     setBest((current) => {
@@ -115,7 +275,7 @@ export default function BathGame() {
       window.localStorage.setItem("seven-bath-best", String(nextBest));
       return nextBest;
     });
-  }, []);
+  }, [playFinalVictorySound, playGameOverSound, playLevelCompleteSound, stopScrubbingSound]);
 
   const addBubble = useCallback((point: Point) => {
     const id = ++bubbleIdRef.current;
@@ -135,7 +295,13 @@ export default function BathGame() {
   const scrubAt = useCallback((point: Point, distance: number, angle: number) => {
     setSponge({ x: point.x, y: point.y, angle, active: dragRef.current });
     const touchingCat = point.x > 30 && point.x < 70 && point.y > 20 && point.y < 78;
-    if (!dragRef.current || !touchingCat || distance < 1.4) return;
+    if (!dragRef.current) {
+      stopScrubbingSound();
+      return;
+    }
+    if (!touchingCat) return;
+    if (distance < 1.4) return;
+    playScrubbingSound();
 
     if (moodRef.current === "watching") {
       if (performance.now() < turnGraceUntilRef.current) return;
@@ -145,7 +311,7 @@ export default function BathGame() {
     if (moodRef.current !== "safe") return;
 
     const gain = levelRef.current === 1
-      ? clamp(distance * 0.18, 0.6, 4.5)
+      ? clamp(distance * 0.09, 0.3, 2.25)
       : clamp(distance * 0.03, 0.09, 0.8);
     setCleanliness((current) => {
       const next = clamp(current + gain, 0, 100);
@@ -157,7 +323,7 @@ export default function BathGame() {
     });
     addBubble(point);
     if (distance > 12) addBubble({ x: point.x - 3, y: point.y + 2 });
-  }, [addBubble, finishGame]);
+  }, [addBubble, finishGame, playScrubbingSound, stopScrubbingSound]);
 
   const pointFromEvent = (event: React.PointerEvent<HTMLDivElement>) => {
     const rect = sceneRef.current?.getBoundingClientRect();
@@ -191,6 +357,7 @@ export default function BathGame() {
 
   const stopDragging = () => {
     dragRef.current = false;
+    stopScrubbingSound();
     setSponge((current) => ({ ...current, active: false }));
   };
 
@@ -214,6 +381,8 @@ export default function BathGame() {
   };
 
   const beginLevel = (nextLevel: 1 | 2) => {
+    hasStartedRef.current = true;
+    if (musicEnabled) playBackgroundMusic();
     levelRef.current = nextLevel;
     setLevel(nextLevel);
     cleanlinessRef.current = 0;
@@ -223,6 +392,10 @@ export default function BathGame() {
     turnGraceUntilRef.current = 0;
     setMood("safe");
     setStatus("playing");
+    stopScrubbingSound();
+    stopLevelCompleteSound();
+    stopFinalVictorySound();
+    stopGameOverSound();
     setSponge({ x: 28, y: 56, angle: -12, active: false });
     lastPointRef.current = { x: 28, y: 56 };
   };
@@ -238,6 +411,10 @@ export default function BathGame() {
     setBubbles([]);
     setMood("safe");
     setStatus("idle");
+    stopScrubbingSound();
+    stopLevelCompleteSound();
+    stopFinalVictorySound();
+    stopGameOverSound();
     setSponge({ x: 28, y: 56, angle: -12, active: false });
     lastPointRef.current = { x: 28, y: 56 };
   };
@@ -256,13 +433,64 @@ export default function BathGame() {
   const stageLabel = level === 1 ? "第一关" : "最后一关";
 
   return (
-    <main className="game-shell">
+    <main className="game-shell" onClickCapture={handleButtonClick}>
+      {/* This track is instrumental background music, so captions do not apply. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        ref={backgroundMusicRef}
+        src={`${__PUBLIC_BASE_PATH__}/assets/audio/background-music.mp3`}
+        loop
+        preload="metadata"
+        aria-hidden="true"
+      />
+      {/* This effect contains no speech, so captions do not apply. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        ref={scrubbingSoundRef}
+        src={`${__PUBLIC_BASE_PATH__}/assets/audio/scrubbing.mp3`}
+        loop
+        preload="metadata"
+        aria-hidden="true"
+      />
+      {/* This effect contains no speech, so captions do not apply. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        ref={levelCompleteSoundRef}
+        src={`${__PUBLIC_BASE_PATH__}/assets/audio/level-complete.mp3`}
+        preload="metadata"
+        aria-hidden="true"
+      />
+      {/* This effect contains no speech, so captions do not apply. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        ref={finalVictorySoundRef}
+        src={`${__PUBLIC_BASE_PATH__}/assets/audio/final-victory.mp3`}
+        preload="metadata"
+        aria-hidden="true"
+      />
+      {/* This effect contains no speech, so captions do not apply. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        ref={gameOverSoundRef}
+        src={`${__PUBLIC_BASE_PATH__}/assets/audio/game-over.mp3`}
+        preload="metadata"
+        aria-hidden="true"
+      />
+      {/* CC0 button sound by pauliuw, sourced from OpenGameArt. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        ref={buttonSoundRef}
+        src={`${__PUBLIC_BASE_PATH__}/assets/audio/button-pop.mp3`}
+        preload="auto"
+        aria-hidden="true"
+      />
       <section className="game-card" aria-label="老七，该洗澡了">
         <header className="game-header">
           <div className="title-block">
             <div className="title-meta">
               <p className="eyebrow">Seven&apos;s bath time</p>
-              <button type="button" className="about-trigger" aria-haspopup="dialog" onClick={() => setShowAbout(true)}>关于</button>
+              <button type="button" className="about-trigger" aria-haspopup="dialog" onClick={openAbout}>关于</button>
+              <button type="button" className="sound-trigger" aria-haspopup="dialog" onClick={() => { setShowAbout(false); setShowSoundSettings(true); }}>设置</button>
             </div>
             <h1>老七，该洗澡了</h1>
           </div>
@@ -354,8 +582,28 @@ export default function BathGame() {
               />
               <h2 id="about-title">关于 SEVEN 爱洗澡</h2>
               <p>这是一款围绕 Seven 洗澡日常制作的轻量互动小游戏。</p>
-              <p className="about-notice">部分素材源自王女士和她的狗，仅供娱乐、交流与学习使用。</p>
+              <p className="about-notice">部分素材源自王姐和她的狗，仅供娱乐、交流与学习使用。</p>
               <button type="button" onClick={() => setShowAbout(false)}>知道了</button>
+            </section>
+          </div>
+        )}
+        {showSoundSettings && (
+          <div className="about-overlay">
+            <section className="about-card sound-settings-card" role="dialog" aria-modal="true" aria-labelledby="sound-settings-title">
+              <span className="sound-settings-icon" aria-hidden="true">♫</span>
+              <h2 id="sound-settings-title">声音设置</h2>
+              <div className="sound-settings-list">
+                <div className="sound-setting-row">
+                  <div><strong>背景音乐</strong><span>控制游戏中的循环音乐</span></div>
+                  <button type="button" className={`sound-toggle${musicEnabled ? " is-on" : ""}`} role="switch" aria-label="背景音乐" aria-checked={musicEnabled} onClick={toggleMusic}><span aria-hidden="true" /></button>
+                </div>
+                <div className="sound-setting-row">
+                  <div><strong>游戏音效</strong><span>控制操作和状态提示音</span></div>
+                  <button type="button" className={`sound-toggle${soundEffectsEnabled ? " is-on" : ""}`} role="switch" aria-label="游戏音效" aria-checked={soundEffectsEnabled} onClick={toggleSoundEffects}><span aria-hidden="true" /></button>
+                </div>
+              </div>
+              <p className="sound-settings-note">设置会保存在当前浏览器中。</p>
+              <button type="button" onClick={() => setShowSoundSettings(false)}>完成</button>
             </section>
           </div>
         )}
