@@ -29,6 +29,7 @@ export default function BathGame() {
   const [level, setLevel] = useState<1 | 2>(1);
   const [cleanliness, setCleanliness] = useState(0);
   const [best, setBest] = useState(0);
+  const [showAbout, setShowAbout] = useState(false);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [sponge, setSponge] = useState({ x: 28, y: 56, angle: -12, active: false });
 
@@ -53,7 +54,7 @@ export default function BathGame() {
   }, []);
 
   useEffect(() => {
-    if (status !== "playing") return;
+    if (status !== "playing" || showAbout) return;
 
     let turnTimer: ReturnType<typeof setTimeout>;
     let watchingTimer: ReturnType<typeof setTimeout>;
@@ -89,7 +90,16 @@ export default function BathGame() {
       clearTimeout(turnTimer);
       clearTimeout(watchingTimer);
     };
-  }, [status]);
+  }, [showAbout, status]);
+
+  useEffect(() => {
+    if (!showAbout) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowAbout(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [showAbout]);
 
   const finishGame = useCallback((nextStatus: "levelcomplete" | "gameover" | "won", score: number) => {
     dragRef.current = false;
@@ -243,21 +253,21 @@ export default function BathGame() {
   const moodCopy = mood === "safe"
     ? "现在可以洗"
     : "Seven 回头了，快停！";
-  const stage = level === 1
-    ? { label: "教学", className: "easy" }
-    : cleanliness < 40
-      ? { label: "警觉", className: "medium" }
-      : cleanliness < 75
-        ? { label: "危险", className: "hard" }
-        : { label: "极限", className: "extreme" };
+  const stageLabel = level === 1 ? "第一关" : "最后一关";
 
   return (
     <main className="game-shell">
       <section className="game-card" aria-label="老七，该洗澡了">
         <header className="game-header">
-          <div><p className="eyebrow">Seven&apos;s bath time</p><h1>老七，该洗澡了</h1></div>
+          <div className="title-block">
+            <div className="title-meta">
+              <p className="eyebrow">Seven&apos;s bath time</p>
+              <button type="button" className="about-trigger" aria-haspopup="dialog" onClick={() => setShowAbout(true)}>关于</button>
+            </div>
+            <h1>老七，该洗澡了</h1>
+          </div>
           <div className="score-group">
-            <div className={`stage-meter stage-${stage.className}`}><span>第 {level} 关</span><strong>{stage.label}</strong></div>
+            <div className={`stage-meter${level === 2 ? " stage-final" : ""}`}><strong>{stageLabel}</strong></div>
             <div className="best-score"><span>最好</span><strong>{best}%</strong></div>
           </div>
         </header>
@@ -312,7 +322,7 @@ export default function BathGame() {
               <div className="overlay-card">
                 <span className="overlay-icon" aria-hidden="true">{status === "won" ? "✨" : status === "levelcomplete" ? "👏" : status === "gameover" ? "😾" : status === "paused" ? "⏸️" : "🫧"}</span>
                 <h2>{status === "won" ? "两关全通！" : status === "levelcomplete" ? "第一关完成！" : status === "gameover" ? "Seven 生气了！" : status === "paused" ? "游戏已暂停" : "准备好洗澡了吗？"}</h2>
-                <p>{status === "won" ? "你顶住了最后的极限节奏，Seven 终于洗香香了！" : status === "levelcomplete" ? "难度飙升！别笑，你也过不了第二关！！！" : status === "gameover" ? `第 ${level} 关清洁度 ${Math.round(cleanliness)}%。Seven 回头时要立刻停手。` : status === "paused" ? `第 ${level} 关已暂停，当前清洁度 ${Math.round(cleanliness)}%。` : "第一关很轻松，先熟悉搓洗和停手；通过后再挑战高难度第二关。"}</p>
+                <p>{status === "won" ? "Seven 终于洗香香了!" : status === "levelcomplete" ? "难度飙升！别笑，你也过不了第二关！！！" : status === "gameover" ? `第 ${level} 关清洁度 ${Math.round(cleanliness)}%。Seven 回头时要立刻停手。` : status === "paused" ? `第 ${level} 关已暂停，当前清洁度 ${Math.round(cleanliness)}%。` : "第一关很轻松，先熟悉搓洗和停手；通过后再挑战高难度第二关。"}</p>
                 {status === "paused" ? (
                   <div className="overlay-actions">
                     <button type="button" className="secondary-button" onClick={returnHome}>返回主界面</button>
@@ -320,7 +330,7 @@ export default function BathGame() {
                     <button type="button" onClick={() => setStatus("playing")}>继续</button>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => beginLevel(status === "levelcomplete" ? 2 : status === "won" ? 1 : level)}>{status === "idle" ? "开始第一关" : status === "levelcomplete" ? "挑战第二关" : status === "won" ? "再玩一遍" : `重试第 ${level} 关`}</button>
+                  <button type="button" onClick={() => beginLevel(status === "levelcomplete" ? 2 : status === "won" ? 1 : level)}>{status === "idle" ? "开始第一关" : status === "levelcomplete" ? "挑战最后一关" : status === "won" ? "再玩一遍" : `重试第 ${level} 关`}</button>
                 )}
               </div>
             </div>
@@ -334,6 +344,21 @@ export default function BathGame() {
             <span className="status-pill">拖动浴球 · 回头就松手</span>
           </div>
         </footer>
+        {showAbout && (
+          <div className="about-overlay">
+            <section className="about-card" role="dialog" aria-modal="true" aria-labelledby="about-title">
+              <span
+                className="about-game-icon"
+                style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/brand/game-icon-192.png")` }}
+                aria-hidden="true"
+              />
+              <h2 id="about-title">关于 SEVEN 爱洗澡</h2>
+              <p>这是一款围绕 Seven 洗澡日常制作的轻量互动小游戏。</p>
+              <p className="about-notice">部分素材源自王女士和她的狗，仅供娱乐、交流与学习使用。</p>
+              <button type="button" onClick={() => setShowAbout(false)}>知道了</button>
+            </section>
+          </div>
+        )}
       </section>
     </main>
   );
