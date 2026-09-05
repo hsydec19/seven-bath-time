@@ -6,12 +6,14 @@ declare const __PUBLIC_BASE_PATH__: string;
 
 type GameStatus = "idle" | "playing" | "paused" | "levelcomplete" | "gameover" | "won";
 type CatMood = "safe" | "watching";
+type TurnPace = "normal" | "sudden" | "long";
 type Point = { x: number; y: number };
 type Bubble = Point & { id: number; size: number; drift: number };
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
-const TURN_REACTION_GRACE_MS = 150;
+const TUTORIAL_REACTION_GRACE_MS = 150;
+const FINAL_LEVEL_REACTION_GRACE_MS = 200;
 
 export default function BathGame() {
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -31,6 +33,8 @@ export default function BathGame() {
   const levelRef = useRef<1 | 2>(1);
   const bubbleIdRef = useRef(0);
   const turnGraceUntilRef = useRef(0);
+  const previousTurnPaceRef = useRef<TurnPace | null>(null);
+  const doubleTurnCountRef = useRef(0);
 
   const [status, setStatus] = useState<GameStatus>("idle");
   const [mood, setMood] = useState<CatMood>("safe");
@@ -78,28 +82,55 @@ export default function BathGame() {
     let turnTimer: ReturnType<typeof setTimeout>;
     let watchingTimer: ReturnType<typeof setTimeout>;
 
-    const scheduleTurn = () => {
+    const scheduleTurn = (isDoubleTurn = false) => {
       const difficulty = cleanlinessRef.current / 100;
       const lateGameRamp = difficulty ** 2.4;
       const isTutorial = levelRef.current === 1;
+      let pace: TurnPace = "normal";
+
+      if (!isTutorial) {
+        if (isDoubleTurn) {
+          pace = "sudden";
+        } else {
+          const paceRoll = Math.random();
+          pace = previousTurnPaceRef.current === "sudden"
+            ? paceRoll < 0.8 ? "normal" : "long"
+            : paceRoll < 0.65 ? "normal" : paceRoll < 0.85 ? "sudden" : "long";
+        }
+        previousTurnPaceRef.current = pace;
+      }
+
       const safeWindow = isTutorial
         ? 2800 + Math.random() * 1200
-        : 2150 - lateGameRamp * 1500
-          + Math.random() ** 1.35 * (1200 - lateGameRamp * 450);
+        : isDoubleTurn
+          ? 650 + Math.random() * 250
+          : pace === "sudden"
+            ? 900 - lateGameRamp * 250 + Math.random() * 350
+            : pace === "long"
+              ? 3400 - lateGameRamp * 1200 + Math.random() * 1500
+              : 1850 - lateGameRamp * 950
+                + Math.random() ** 1.2 * (1300 - lateGameRamp * 400);
       turnTimer = setTimeout(() => {
         if (statusRef.current !== "playing") return;
         moodRef.current = "watching";
-        turnGraceUntilRef.current = performance.now() + TURN_REACTION_GRACE_MS;
+        turnGraceUntilRef.current = performance.now()
+          + (isTutorial ? TUTORIAL_REACTION_GRACE_MS : FINAL_LEVEL_REACTION_GRACE_MS);
         setMood("watching");
         const watchingWindow = isTutorial
           ? 1500 + Math.random() * 300
-          : 1700 + lateGameRamp * 1400 + Math.random() * 1100;
+          : 1350 + lateGameRamp * 1200 + Math.random() * 1600;
         watchingTimer = setTimeout(() => {
           if (statusRef.current !== "playing") return;
           moodRef.current = "safe";
           turnGraceUntilRef.current = 0;
           setMood("safe");
-          scheduleTurn();
+          const shouldDoubleTurn = !isTutorial
+            && !isDoubleTurn
+            && pace !== "sudden"
+            && doubleTurnCountRef.current < 2
+            && Math.random() < 0.14;
+          if (shouldDoubleTurn) doubleTurnCountRef.current += 1;
+          scheduleTurn(shouldDoubleTurn);
         }, watchingWindow);
       }, safeWindow);
     };
@@ -311,8 +342,8 @@ export default function BathGame() {
     if (moodRef.current !== "safe") return;
 
     const gain = levelRef.current === 1
-      ? clamp(distance * 0.09, 0.3, 2.25)
-      : clamp(distance * 0.03, 0.09, 0.8);
+      ? clamp(distance * 0.18, 0.6, 4.5)
+      : clamp(distance * 0.025, 0.075, 0.67);
     setCleanliness((current) => {
       const next = clamp(current + gain, 0, 100);
       if (next >= 100) {
@@ -390,6 +421,8 @@ export default function BathGame() {
     setBubbles([]);
     moodRef.current = "safe";
     turnGraceUntilRef.current = 0;
+    previousTurnPaceRef.current = null;
+    doubleTurnCountRef.current = 0;
     setMood("safe");
     setStatus("playing");
     stopScrubbingSound();
@@ -406,6 +439,8 @@ export default function BathGame() {
     cleanlinessRef.current = 0;
     moodRef.current = "safe";
     turnGraceUntilRef.current = 0;
+    previousTurnPaceRef.current = null;
+    doubleTurnCountRef.current = 0;
     setLevel(1);
     setCleanliness(0);
     setBubbles([]);

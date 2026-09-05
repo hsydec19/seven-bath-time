@@ -44,7 +44,14 @@ test("includes the complete risk-and-reward game loop", async () => {
   assert.match(source, /finishGame\("gameover"/);
   assert.match(source, /levelRef\.current === 1 \? "levelcomplete" : "won"/);
   assert.match(source, /finishGame\(result, 100\)/);
-  assert.match(source, /levelRef\.current === 1\s*\? clamp\(distance \* 0\.09, 0\.3, 2\.25\)/);
+  assert.match(source, /levelRef\.current === 1\s*\? clamp\(distance \* 0\.18, 0\.6, 4\.5\)/);
+  assert.match(source, /: clamp\(distance \* 0\.025, 0\.075, 0\.67\)/);
+  assert.match(source, /paceRoll < 0\.65 \? "normal" : paceRoll < 0\.85 \? "sudden" : "long"/);
+  assert.match(source, /previousTurnPaceRef\.current === "sudden"/);
+  assert.match(source, /isDoubleTurn\s*\? 650 \+ Math\.random\(\) \* 250/);
+  assert.match(source, /doubleTurnCountRef\.current < 2/);
+  assert.match(source, /Math\.random\(\) < 0\.14/);
+  assert.match(source, /FINAL_LEVEL_REACTION_GRACE_MS = 200/);
   assert.doesNotMatch(source, /FIRST_LEVEL_MIN_SCRUB_MS|firstLevelMinimumMet/);
   assert.match(source, /seven-bath-best/);
   assert.match(source, /onPointerMove/);
@@ -139,6 +146,7 @@ test("uses distinct display, body, and stable numeric typography", async () => {
   assert.match(css, /\.game-footer p\s*\{[^}]*font-weight:500;/s);
   assert.doesNotMatch(css, /SFMono-Regular|Consolas|Liberation Mono/);
   assert.match(css, /\.about-trigger\s*\{[^}]*color:#fff;[^}]*background:#f97d1c;/s);
+  assert.match(css, /\.pause-button\s*\{[^}]*background:#ffd36a;/s);
   assert.doesNotMatch(layout, /next\/font\/google/);
 });
 

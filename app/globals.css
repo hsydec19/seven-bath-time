@@ -74,7 +74,9 @@ h1 { margin:0; font-family:var(--font-display); font-size:clamp(28px,5vw,48px); 
 .game-footer p { margin:0; font-weight:500; line-height:1.45; }
 .game-footer p strong { font-weight:800; }
 .footer-actions { display:flex; align-items:center; gap:10px; flex-shrink:0; }
-.pause-button { padding:9px 16px; border:2px solid var(--ink); border-radius:999px; color:var(--ink); background:#fff; font-family:var(--font-display); font-weight:800; cursor:pointer; }
+.pause-button { padding:9px 16px; border:2px solid var(--ink); border-radius:999px; color:var(--ink); background:#ffd36a; font-family:var(--font-display); font-weight:800; box-shadow:2px 3px 0 rgba(23,51,75,.2); cursor:pointer; transition:transform .12s ease,box-shadow .12s ease,background .12s ease; }
+.pause-button:hover { background:#ffc94d; }
+.pause-button:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(23,51,75,.2); }
 .status-pill { flex:0 0 auto; padding:9px 14px; border:2px solid var(--ink); border-radius:999px; background:white; font-family:var(--font-display); font-size:12px; font-weight:800; }
 .about-overlay { position:absolute; inset:0; z-index:40; display:grid; place-items:center; padding:22px; background:rgba(23,51,75,.5); backdrop-filter:blur(4px); }
 .about-card { width:min(100%,430px); padding:30px; border:3px solid var(--ink); border-radius:26px; background:var(--cream); box-shadow:9px 10px 0 rgba(23,51,75,.28); text-align:center; }
