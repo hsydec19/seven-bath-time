@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 130" role="img" aria-labelledby="title">
+  <title id="title">黄色橡皮鸭</title>
+  <ellipse cx="96" cy="112" rx="66" ry="9" fill="#17334b" opacity=".14"/>
+  <path d="M45 73c15-9 29-10 43-3 12 6 20 13 36 11 13-2 24 4 26 14 2 11-9 21-24 23H67c-24 0-41-12-41-27 0-8 7-14 19-18Z" fill="#FFD24F" stroke="#17334B" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M77 82c15-7 31 0 38 12-11 10-31 12-45 2" fill="#F6B93B" stroke="#17334B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="65" cy="52" r="31" fill="#FFD24F" stroke="#17334B" stroke-width="6"/>
+  <path d="M38 50c-12-5-25-2-30 5 8 9 22 12 34 6" fill="#FF8068" stroke="#17334B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="70" cy="45" r="4.5" fill="#17334B"/>
+  <circle cx="71.5" cy="43.5" r="1.4" fill="#FFFFFF"/>
+  <path d="M51 31c8-7 20-7 28-1" fill="none" stroke="#FFF3D5" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+  <path d="M45 78c-8 4-11 9-10 15" fill="none" stroke="#FFF3D5" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+</svg>

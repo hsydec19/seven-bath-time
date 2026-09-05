@@ -259,7 +259,6 @@ export default function BathGame() {
           <div className="score-group">
             <div className={`stage-meter stage-${stage.className}`}><span>第 {level} 关</span><strong>{stage.label}</strong></div>
             <div className="best-score"><span>最好</span><strong>{best}%</strong></div>
-            <div className="clean-meter"><span>清洁度</span><strong>{Math.round(cleanliness)}%</strong></div>
           </div>
         </header>
 
@@ -278,29 +277,35 @@ export default function BathGame() {
           onPointerCancel={stopDragging}
           onKeyDown={handleKeyDown}
         >
-          <div className="progress-track"><span style={{ width: `${cleanliness}%` }} /></div>
-          <div className="shower-pipe" />
+          <div className="progress-hud" aria-label={`清洁进度 ${Math.round(cleanliness)}%`}>
+            <div className="progress-track" aria-hidden="true"><span style={{ width: `${cleanliness}%` }} /></div>
+            <strong className="progress-value"><span>清洁度</span>{Math.round(cleanliness)}%</strong>
+          </div>
+          <div
+            className="shower-fixture"
+            style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/bath/shower-fixture.svg?v=1")` }}
+            aria-hidden="true"
+          />
           <div className="cat" aria-label="浴缸里的 Seven">
             <div
               className="cat-layer cat-body-photo"
-              style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/seven/cat-body-neck.png?v=1")` }}
+              style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/seven/cat-body.webp?v=1")` }}
             />
-            {mood === "safe"
-              ? <div
-                  className="cat-layer cat-head-safe"
-                  style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/seven/cat-safe-full.png?v=3")` }}
-                />
-              : <div
-                  className="cat-head-turn"
-                  style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/seven/cat-head-user-balanced.png?v=2")` }}
-                />}
+            {mood === "watching" && <div
+              className="cat-head-turn"
+              style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/seven/cat-head-turn.webp?v=1")` }}
+            />}
           </div>
           {bubbles.map((bubble) => (
             <i key={bubble.id} className="foam-particle" style={{ left: `${bubble.x}%`, top: `${bubble.y}%`, width: bubble.size, height: bubble.size, "--drift": `${bubble.drift}px` } as React.CSSProperties} />
           ))}
           <div className="sponge" style={{ left: `${sponge.x}%`, top: `${sponge.y}%`, transform: `translate(-50%, -50%) rotate(${sponge.angle}deg)` }} aria-label="浴球"><span /></div>
           <div className="tub"><span className="water-line" /><span className="tub-shine" /></div>
-          <div className="duck" aria-hidden="true"><span /></div>
+          <div
+            className="duck-sticker"
+            style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/bath/rubber-duck.svg?v=1")` }}
+            aria-hidden="true"
+          />
           {status === "playing" && <div className={`mood-badge mood-badge-${mood}`} aria-live="polite">{moodCopy}</div>}
           {status !== "playing" && (
             <div className={`game-overlay overlay-${status}`}>
@@ -326,7 +331,7 @@ export default function BathGame() {
           <p><strong>第 {level} 关：</strong>{level === 1 ? "看到 Seven 回头就停手，会留一点反应时间。" : "难度飙升！别笑，你也过不了第二关！！！"}</p>
           <div className="footer-actions">
             {status === "playing" && <button type="button" className="pause-button" onClick={pauseGame}>暂停</button>}
-            <span className={`status-pill status-pill-${mood}`}>{status === "playing" ? moodCopy : "鼠标 · 触屏 · 方向键"}</span>
+            <span className="status-pill">拖动浴球 · 回头就松手</span>
           </div>
         </footer>
       </section>
