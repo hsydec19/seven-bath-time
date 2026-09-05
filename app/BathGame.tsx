@@ -14,6 +14,11 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 const TUTORIAL_REACTION_GRACE_MS = 150;
 const FINAL_LEVEL_REACTION_GRACE_MS = 200;
+const BEST_SCORE_STORAGE_KEYS = {
+  1: "seven-bath-best-level-1",
+  2: "seven-bath-best-level-2",
+} as const;
+const LEGACY_BEST_SCORE_STORAGE_KEY = "seven-bath-best";
 
 export default function BathGame() {
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -41,7 +46,7 @@ export default function BathGame() {
   const [mood, setMood] = useState<CatMood>("safe");
   const [level, setLevel] = useState<1 | 2>(1);
   const [cleanliness, setCleanliness] = useState(0);
-  const [best, setBest] = useState(0);
+  const [bestScores, setBestScores] = useState<Record<1 | 2, number>>({ 1: 0, 2: 0 });
   const [showAbout, setShowAbout] = useState(false);
   const [showSoundSettings, setShowSoundSettings] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
@@ -79,8 +84,15 @@ export default function BathGame() {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      const stored = Number(window.localStorage.getItem("seven-bath-best") ?? 0);
-      if (Number.isFinite(stored)) setBest(clamp(stored, 0, 100));
+      const readBestScore = (key: string, fallback = 0) => {
+        const stored = Number(window.localStorage.getItem(key) ?? fallback);
+        return Number.isFinite(stored) ? clamp(stored, 0, 100) : 0;
+      };
+      const legacyBest = readBestScore(LEGACY_BEST_SCORE_STORAGE_KEY);
+      setBestScores({
+        1: readBestScore(BEST_SCORE_STORAGE_KEYS[1]),
+        2: readBestScore(BEST_SCORE_STORAGE_KEYS[2], legacyBest),
+      });
       const storedMusic = window.localStorage.getItem("seven-bath-music-enabled");
       const storedSoundEffects = window.localStorage.getItem("seven-bath-sfx-enabled");
       if (storedMusic !== null) setMusicEnabled(storedMusic === "true");
@@ -311,12 +323,12 @@ export default function BathGame() {
     if (nextStatus === "levelcomplete") playLevelCompleteSound();
     if (nextStatus === "won") playFinalVictorySound();
     if (nextStatus === "gameover") playGameOverSound();
-    if (nextStatus === "levelcomplete" || levelRef.current === 1) return;
-    const rounded = Math.round(score);
-    setBest((current) => {
-      const nextBest = Math.max(current, rounded);
-      window.localStorage.setItem("seven-bath-best", String(nextBest));
-      return nextBest;
+    const finishedLevel = levelRef.current;
+    const rounded = Math.round(clamp(score, 0, 100));
+    setBestScores((current) => {
+      const nextBest = Math.max(current[finishedLevel], rounded);
+      window.localStorage.setItem(BEST_SCORE_STORAGE_KEYS[finishedLevel], String(nextBest));
+      return { ...current, [finishedLevel]: nextBest };
     });
   }, [playFinalVictorySound, playGameOverSound, playLevelCompleteSound, stopScrubbingSound]);
 
@@ -551,7 +563,7 @@ export default function BathGame() {
           </div>
           <div className="score-group">
             <div className={`stage-meter${level === 2 ? " stage-final" : ""}`}><strong>{stageLabel}</strong></div>
-            <div className="best-score"><span>最好</span><strong>{best}%</strong></div>
+            <div className="best-score"><span>本关最好</span><strong>{bestScores[level]}%</strong></div>
           </div>
         </header>
 

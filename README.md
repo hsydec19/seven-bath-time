@@ -8,6 +8,8 @@ Inspired by content found online. This project is intended for entertainment pur
 
 [中文说明](docs/README.zh-CN.md)
 
+Coding: Codex.
+
 ## License
 
 Copyright © 2026. All rights reserved. See [`LICENSE.md`](LICENSE.md).

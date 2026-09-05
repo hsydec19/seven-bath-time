@@ -8,6 +8,8 @@
 
 [English README](../README.md)
 
+编程手：Codex。
+
 ## License
 
 版权所有 © 2026。保留所有权利。详见 [`LICENSE.md`](../LICENSE.md)。

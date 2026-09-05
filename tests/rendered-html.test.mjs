@@ -53,7 +53,11 @@ test("includes the complete risk-and-reward game loop", async () => {
   assert.match(source, /Math\.random\(\) < 0\.14/);
   assert.match(source, /FINAL_LEVEL_REACTION_GRACE_MS = 200/);
   assert.doesNotMatch(source, /FIRST_LEVEL_MIN_SCRUB_MS|firstLevelMinimumMet/);
-  assert.match(source, /seven-bath-best/);
+  assert.match(source, /seven-bath-best-level-1/);
+  assert.match(source, /seven-bath-best-level-2/);
+  assert.match(source, /LEGACY_BEST_SCORE_STORAGE_KEY = "seven-bath-best"/);
+  assert.match(source, /BEST_SCORE_STORAGE_KEYS\[finishedLevel\]/);
+  assert.match(source, /bestScores\[level\]/);
   assert.match(source, /onPointerMove/);
   assert.match(source, /onKeyDown/);
   assert.match(source, /cat-body\.webp/);
@@ -152,7 +156,7 @@ test("uses distinct display, body, and stable numeric typography", async () => {
   assert.match(css, /\.game-footer p\s*\{[^}]*font-weight:500;/s);
   assert.doesNotMatch(css, /SFMono-Regular|Consolas|Liberation Mono/);
   assert.match(css, /\.about-trigger\s*\{[^}]*color:#fff;[^}]*background:#f97d1c;/s);
-  assert.match(css, /\.pause-button\s*\{[^}]*background:#ffd36a;/s);
+  assert.match(css, /\.pause-button\s*\{[^}]*color:#fff;[^}]*background:#f05d5e;/s);
   assert.doesNotMatch(layout, /next\/font\/google/);
 });
 
