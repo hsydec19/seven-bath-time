@@ -18,7 +18,7 @@ test("renders the Seven bath game landing state", async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /<title>seven该洗澡了<\/title>/i);
+  assert.match(html, /<title>老七，该洗澡了<\/title>/i);
   assert.match(html, /准备好洗澡了吗？/);
   assert.match(html, /开始第一关/);
   assert.match(html, /清洁度/);

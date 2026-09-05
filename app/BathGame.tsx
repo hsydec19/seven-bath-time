@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+declare const __PUBLIC_BASE_PATH__: string;
+
 type GameStatus = "idle" | "playing" | "paused" | "levelcomplete" | "gameover" | "won";
 type CatMood = "safe" | "watching";
 type Point = { x: number; y: number };
@@ -279,10 +281,19 @@ export default function BathGame() {
           <div className="progress-track"><span style={{ width: `${cleanliness}%` }} /></div>
           <div className="shower-pipe" />
           <div className="cat" aria-label="浴缸里的 Seven">
-            <div className="cat-layer cat-body-photo" />
+            <div
+              className="cat-layer cat-body-photo"
+              style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/seven/cat-body-neck.png?v=1")` }}
+            />
             {mood === "safe"
-              ? <div className="cat-layer cat-head-safe" />
-              : <div className="cat-head-turn" />}
+              ? <div
+                  className="cat-layer cat-head-safe"
+                  style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/seven/cat-safe-full.png?v=3")` }}
+                />
+              : <div
+                  className="cat-head-turn"
+                  style={{ backgroundImage: `url("${__PUBLIC_BASE_PATH__}/assets/seven/cat-head-user-balanced.png?v=2")` }}
+                />}
           </div>
           {bubbles.map((bubble) => (
             <i key={bubble.id} className="foam-particle" style={{ left: `${bubble.x}%`, top: `${bubble.y}%`, width: bubble.size, height: bubble.size, "--drift": `${bubble.drift}px` } as React.CSSProperties} />

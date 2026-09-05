@@ -7,9 +7,12 @@
   },
   "scripts": {
     "dev": "vinext dev",
-    "build": "vinext build",
+    "build": "npm run build:cloudflare",
+    "build:cloudflare": "node scripts/build.mjs cloudflare",
+    "build:github": "node scripts/build.mjs github",
     "start": "vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test:github": "npm run build:github && node --test tests/github-pages.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
