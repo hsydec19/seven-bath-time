@@ -23,6 +23,7 @@ export default function BathGame() {
   const finalVictorySoundRef = useRef<HTMLAudioElement>(null);
   const gameOverSoundRef = useRef<HTMLAudioElement>(null);
   const buttonSoundRef = useRef<HTMLAudioElement>(null);
+  const audioRequestRef = useRef(new WeakMap<HTMLAudioElement, number>());
   const hasStartedRef = useRef(false);
   const soundEffectsEnabledRef = useRef(true);
   const dragRef = useRef(false);
@@ -59,6 +60,22 @@ export default function BathGame() {
   useEffect(() => {
     cleanlinessRef.current = cleanliness;
   }, [cleanliness]);
+
+  useEffect(() => {
+    [
+      backgroundMusicRef,
+      scrubbingSoundRef,
+      levelCompleteSoundRef,
+      finalVictorySoundRef,
+      gameOverSoundRef,
+      buttonSoundRef,
+    ].forEach((ref) => {
+      const audio = ref.current;
+      if (!audio) return;
+      audio.preload = "auto";
+      audio.load();
+    });
+  }, []);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -153,111 +170,104 @@ export default function BathGame() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [showAbout, showSoundSettings]);
 
-  const playBackgroundMusic = useCallback(() => {
-    const audio = backgroundMusicRef.current;
+  const stopAudio = useCallback((audio: HTMLAudioElement | null) => {
     if (!audio) return;
-    audio.volume = 0.28;
-    void audio.play().catch(() => {
-      // Browsers may reject playback until the next explicit user interaction.
-    });
+    const requestId = (audioRequestRef.current.get(audio) ?? 0) + 1;
+    audioRequestRef.current.set(audio, requestId);
+    audio.pause();
+    if (audio.readyState > 0) audio.currentTime = 0;
   }, []);
+
+  const playAudio = useCallback((audio: HTMLAudioElement | null, volume: number, label: string) => {
+    if (!audio) return;
+    const requestId = (audioRequestRef.current.get(audio) ?? 0) + 1;
+    audioRequestRef.current.set(audio, requestId);
+    audio.volume = volume;
+    if (audio.readyState > 0) audio.currentTime = 0;
+
+    const attemptPlayback = (canRetry: boolean) => {
+      if (audioRequestRef.current.get(audio) !== requestId) return;
+      void audio.play().catch((error: unknown) => {
+        if (audioRequestRef.current.get(audio) !== requestId) return;
+        const errorName = error instanceof DOMException ? error.name : "UnknownError";
+        const mediaErrorCode = audio.error?.code;
+        const recoverable = errorName !== "NotAllowedError"
+          && errorName !== "AbortError"
+          && mediaErrorCode !== MediaError.MEDIA_ERR_DECODE
+          && mediaErrorCode !== MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED;
+
+        if (canRetry && recoverable) {
+          const retryWhenReady = () => attemptPlayback(false);
+          audio.addEventListener("canplay", retryWhenReady, { once: true });
+          audio.load();
+          return;
+        }
+
+        console.warn(`[audio] Unable to play ${label}`, error);
+      });
+    };
+
+    attemptPlayback(true);
+  }, []);
+
+  const playBackgroundMusic = useCallback(() => {
+    playAudio(backgroundMusicRef.current, 0.28, "background music");
+  }, [playAudio]);
 
   const toggleMusic = () => {
     const nextEnabled = !musicEnabled;
     setMusicEnabled(nextEnabled);
     window.localStorage.setItem("seven-bath-music-enabled", String(nextEnabled));
     if (nextEnabled && hasStartedRef.current) playBackgroundMusic();
-    if (!nextEnabled) backgroundMusicRef.current?.pause();
+    if (!nextEnabled) stopAudio(backgroundMusicRef.current);
   };
 
   const stopScrubbingSound = useCallback(() => {
-    const audio = scrubbingSoundRef.current;
-    if (!audio) return;
-    audio.pause();
-    if (audio.readyState > 0) audio.currentTime = 0;
-  }, []);
+    stopAudio(scrubbingSoundRef.current);
+  }, [stopAudio]);
 
   const playScrubbingSound = useCallback(() => {
     if (!soundEffectsEnabledRef.current) return;
     const audio = scrubbingSoundRef.current;
     if (!audio || !audio.paused) return;
-    audio.volume = 0.42;
-    void audio.play().catch(() => {
-      // Playback can resume on the next pointer or keyboard interaction.
-    });
-  }, []);
+    playAudio(audio, 0.42, "scrubbing sound");
+  }, [playAudio]);
 
   const stopLevelCompleteSound = useCallback(() => {
-    const audio = levelCompleteSoundRef.current;
-    if (!audio) return;
-    audio.pause();
-    if (audio.readyState > 0) audio.currentTime = 0;
-  }, []);
+    stopAudio(levelCompleteSoundRef.current);
+  }, [stopAudio]);
 
   const playLevelCompleteSound = useCallback(() => {
     if (!soundEffectsEnabledRef.current) return;
-    const audio = levelCompleteSoundRef.current;
-    if (!audio) return;
-    if (audio.readyState > 0) audio.currentTime = 0;
-    audio.volume = 0.68;
-    void audio.play().catch(() => {
-      // Playback can resume after another explicit user interaction.
-    });
-  }, []);
+    playAudio(levelCompleteSoundRef.current, 0.68, "level complete sound");
+  }, [playAudio]);
 
   const stopFinalVictorySound = useCallback(() => {
-    const audio = finalVictorySoundRef.current;
-    if (!audio) return;
-    audio.pause();
-    if (audio.readyState > 0) audio.currentTime = 0;
-  }, []);
+    stopAudio(finalVictorySoundRef.current);
+  }, [stopAudio]);
 
   const playFinalVictorySound = useCallback(() => {
     if (!soundEffectsEnabledRef.current) return;
-    const audio = finalVictorySoundRef.current;
-    if (!audio) return;
-    if (audio.readyState > 0) audio.currentTime = 0;
-    audio.volume = 0.72;
-    void audio.play().catch(() => {
-      // Playback can resume after another explicit user interaction.
-    });
-  }, []);
+    playAudio(finalVictorySoundRef.current, 0.72, "final victory sound");
+  }, [playAudio]);
 
   const stopGameOverSound = useCallback(() => {
-    const audio = gameOverSoundRef.current;
-    if (!audio) return;
-    audio.pause();
-    if (audio.readyState > 0) audio.currentTime = 0;
-  }, []);
+    stopAudio(gameOverSoundRef.current);
+  }, [stopAudio]);
 
   const playGameOverSound = useCallback(() => {
     if (!soundEffectsEnabledRef.current) return;
-    const audio = gameOverSoundRef.current;
-    if (!audio) return;
-    if (audio.readyState > 0) audio.currentTime = 0;
-    audio.volume = 0.7;
-    void audio.play().catch(() => {
-      // Playback can resume after another explicit user interaction.
-    });
-  }, []);
+    playAudio(gameOverSoundRef.current, 0.7, "game over sound");
+  }, [playAudio]);
 
   const stopButtonSound = useCallback(() => {
-    const audio = buttonSoundRef.current;
-    if (!audio) return;
-    audio.pause();
-    if (audio.readyState > 0) audio.currentTime = 0;
-  }, []);
+    stopAudio(buttonSoundRef.current);
+  }, [stopAudio]);
 
   const playButtonSound = useCallback(() => {
     if (!soundEffectsEnabledRef.current) return;
-    const audio = buttonSoundRef.current;
-    if (!audio) return;
-    if (audio.readyState > 0) audio.currentTime = 0;
-    audio.volume = 0.3;
-    void audio.play().catch(() => {
-      // Browsers may reject playback until the next explicit user interaction.
-    });
-  }, []);
+    playAudio(buttonSoundRef.current, 0.3, "button sound");
+  }, [playAudio]);
 
   const handleButtonClick = (event: React.MouseEvent<HTMLElement>) => {
     if (event.target instanceof Element && event.target.closest("button")) playButtonSound();
@@ -289,6 +299,8 @@ export default function BathGame() {
   };
 
   const finishGame = useCallback((nextStatus: "levelcomplete" | "gameover" | "won", score: number) => {
+    if (statusRef.current !== "playing") return;
+    statusRef.current = nextStatus;
     dragRef.current = false;
     stopScrubbingSound();
     moodRef.current = "safe";
@@ -424,6 +436,7 @@ export default function BathGame() {
     previousTurnPaceRef.current = null;
     doubleTurnCountRef.current = 0;
     setMood("safe");
+    statusRef.current = "playing";
     setStatus("playing");
     stopScrubbingSound();
     stopLevelCompleteSound();
@@ -445,6 +458,7 @@ export default function BathGame() {
     setCleanliness(0);
     setBubbles([]);
     setMood("safe");
+    statusRef.current = "idle";
     setStatus("idle");
     stopScrubbingSound();
     stopLevelCompleteSound();
@@ -459,7 +473,13 @@ export default function BathGame() {
     moodRef.current = "safe";
     turnGraceUntilRef.current = 0;
     setMood("safe");
+    statusRef.current = "paused";
     setStatus("paused");
+  };
+
+  const resumeGame = () => {
+    statusRef.current = "playing";
+    setStatus("playing");
   };
 
   const moodCopy = mood === "safe"
@@ -475,7 +495,7 @@ export default function BathGame() {
         ref={backgroundMusicRef}
         src={`${__PUBLIC_BASE_PATH__}/assets/audio/background-music.mp3`}
         loop
-        preload="metadata"
+        preload="auto"
         aria-hidden="true"
       />
       {/* This effect contains no speech, so captions do not apply. */}
@@ -484,7 +504,7 @@ export default function BathGame() {
         ref={scrubbingSoundRef}
         src={`${__PUBLIC_BASE_PATH__}/assets/audio/scrubbing.mp3`}
         loop
-        preload="metadata"
+        preload="auto"
         aria-hidden="true"
       />
       {/* This effect contains no speech, so captions do not apply. */}
@@ -492,7 +512,7 @@ export default function BathGame() {
       <audio
         ref={levelCompleteSoundRef}
         src={`${__PUBLIC_BASE_PATH__}/assets/audio/level-complete.mp3`}
-        preload="metadata"
+        preload="auto"
         aria-hidden="true"
       />
       {/* This effect contains no speech, so captions do not apply. */}
@@ -500,7 +520,7 @@ export default function BathGame() {
       <audio
         ref={finalVictorySoundRef}
         src={`${__PUBLIC_BASE_PATH__}/assets/audio/final-victory.mp3`}
-        preload="metadata"
+        preload="auto"
         aria-hidden="true"
       />
       {/* This effect contains no speech, so captions do not apply. */}
@@ -508,7 +528,7 @@ export default function BathGame() {
       <audio
         ref={gameOverSoundRef}
         src={`${__PUBLIC_BASE_PATH__}/assets/audio/game-over.mp3`}
-        preload="metadata"
+        preload="auto"
         aria-hidden="true"
       />
       {/* CC0 button sound by pauliuw, sourced from OpenGameArt. */}
@@ -590,7 +610,7 @@ export default function BathGame() {
                   <div className="overlay-actions">
                     <button type="button" className="secondary-button" onClick={returnHome}>返回主界面</button>
                     <button type="button" className="secondary-button" onClick={() => beginLevel(level)}>重新开始</button>
-                    <button type="button" onClick={() => setStatus("playing")}>继续</button>
+                    <button type="button" onClick={resumeGame}>继续</button>
                   </div>
                 ) : (
                   <button type="button" onClick={() => beginLevel(status === "levelcomplete" ? 2 : status === "won" ? 1 : level)}>{status === "idle" ? "开始第一关" : status === "levelcomplete" ? "挑战最后一关" : status === "won" ? "再玩一遍" : `重试第 ${level} 关`}</button>
